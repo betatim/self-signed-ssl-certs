@@ -95,3 +95,32 @@ import requests
 # this will raise a SSLCertVerificationError
 requests.get("https://jovyan.example.com")
 ```
+
+
+## Generate your own certificate
+
+This repository contains certificates for `jovyan.example.com` but they have
+a short lifetime and you might want to create your own:
+```
+openssl req -newkey rsa:2048 -nodes -keyout nginx/jovyan.example.com.key -addext "subjectAltName = DNS:jovyan.example.com" -x509 -days 30 -out nginx/jovyan.example.com.crt
+```
+You can answer most of the questions with the default answer. The value that
+matters is the domain name you provide as `subjectAltName`.
+
+Once you have generated the certificate you can look at it with:
+```
+openssl x509 -in nginx/jovyan.example.com.crt -text -noout
+```
+There should be a section like the following in it:
+```
+X509v3 extensions:
+    X509v3 Subject Key Identifier:
+        4E:3F:5C:25:95:B9:0A:06:B8:D6:02:BF:27:ED:E2:F8:83:F0:5A:6C
+    X509v3 Authority Key Identifier:
+        keyid:4E:3F:5C:25:95:B9:0A:06:B8:D6:02:BF:27:ED:E2:F8:83:F0:5A:6C
+
+    X509v3 Basic Constraints: critical
+        CA:TRUE
+    X509v3 Subject Alternative Name:
+        DNS:jovyan.example.com
+```
