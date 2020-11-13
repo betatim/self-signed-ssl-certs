@@ -127,7 +127,7 @@ X509v3 extensions:
         DNS:jovyan.example.com
 ```
 
-### Create local CA & test certificate
+### 2. Create local CA & test certificate
 
 Instructions pulled from here: https://deliciousbrains.com/ssl-certificate-authority-for-local-https-development/
 
