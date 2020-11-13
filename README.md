@@ -100,7 +100,9 @@ requests.get("https://jovyan.example.com")
 ## Generate your own certificate
 
 This repository contains certificates for `jovyan.example.com` but they have
-a short lifetime and you might want to create your own:
+a short lifetime and you might want to create your own.  You have two options here.  The first is to create a self-signed certificate.  The second is to create a separate certificate authority to sign certs with.
+
+### 1. Create Self-Signed Cert
 ```
 openssl req -newkey rsa:2048 -nodes -keyout nginx/jovyan.example.com.key -addext "subjectAltName = DNS:jovyan.example.com" -x509 -days 30 -out nginx/jovyan.example.com.crt
 ```
@@ -123,4 +125,49 @@ X509v3 extensions:
         CA:TRUE
     X509v3 Subject Alternative Name:
         DNS:jovyan.example.com
+```
+
+### Create local CA & test certificate
+
+Instructions pulled from here: https://deliciousbrains.com/ssl-certificate-authority-for-local-https-development/
+
+Create the CA key and cert:
+
+```
+openssl genrsa -des3 -out testCA.key 2048
+openssl req -x509 -new -nodes -key testCA.key -sha256 -days 30 -out testCA.pem
+```
+
+Generate the certificate signing request:
+
+```
+openssl genrsa -out nginx/jovyan.example.com.key 2048
+openssl req -new -key nginx/jovyan.example.com.key -out nginx/jovyan.example.com.csr
+```
+
+Create a certificate extensions configuration file (nginx/jovyan.example.com.ext) with the following content:
+
+```
+authorityKeyIdentifier=keyid,issuer
+basicConstraints=CA:FALSE
+keyUsage = digitalSignature, nonRepudiation, keyEncipherment, dataEncipherment
+subjectAltName = @alt_names
+
+[alt_names]
+DNS.1 = dev.deliciousbrains.com
+```
+
+And then use your new CA to sign your .csr:
+```
+openssl x509 -req -in nginx/jovyan.example.com.csr -CA testCA.pem -CAkey testCA.key -CAcreateserial -out nginx/jovyan.example.com.crt -days 825 -sha256 -extfile nginx/jovyan.example.com.ext
+```
+
+If you choose this setup, you'll need to update the file client/Dockerfile to contain the following:
+
+```
+FROM jupyterhub/k8s-binderhub:0.2.0-n361.h6f57706
+
+RUN mkdir /usr/local/share/ca-certificates/extra
+COPY testCA.pem /usr/local/share/ca-certificates/extra/
+RUN update-ca-certificates
 ```
